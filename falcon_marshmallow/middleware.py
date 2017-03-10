@@ -60,9 +60,9 @@ class JSONEnforcer:
         if not req.client_accepts_json:
             raise HTTPNotAcceptable(
                 description=(
-                    'The Ihiji identification server only supports responses '
-                    'encoded as JSON. Please update your "accepts" header to '
-                    'accept application/json responses.'
+                    'This server only supports responses encoded as JSON. '
+                    'Please update your "Accept" header to include '
+                    '"application/json".'
                 )
             )
 
@@ -71,8 +71,8 @@ class JSONEnforcer:
                     'application/json' not in req.content_type):
                 raise HTTPUnsupportedMediaType(
                     description=(
-                        'The Ihiji identification server only supports '
-                        'requests encoded as JSON.'
+                        '%s requests must have "application/json" in their '
+                        '"Content-Type" header.' % req.method
                     )
                 )
 
