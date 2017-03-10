@@ -63,12 +63,10 @@ SETUP_DEPENDENCIES = [
 ]
 
 TEST_DEPENDENCIES = [
-    'ipdb',
-    'mock;python_version<"3.3"',
     'pytest',
     'pytest-cov',
-    'sphinx',
-    'sphinx_rtd_theme'
+    'ipdb',
+    'mock;python_version<"3.3"',
 ]
 
 EXTRAS_DEPENDENCIES = {}
