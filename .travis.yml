@@ -1,0 +1,12 @@
+---
+
+# Configuration file for Travis CI
+
+
+language: python
+
+python: 3.6
+
+install: "pip install tox"
+
+script: tox
