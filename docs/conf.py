@@ -19,7 +19,6 @@
 #
 # import os
 # import sys
-# sys.path.insert(0, '/Users/Nautilus/Documents/Programming/ihiji/falcon-marshmallow/falcon_marshmallow')
 
 
 # -- General configuration ------------------------------------------------
