@@ -144,8 +144,8 @@ class TestAllIncludedMiddleware:
     """
 
     headers = {
-        'Content-Type': 'application/json',
-        'Accepts': 'application/json'
+        'Content-Type': str('application/json'),
+        'Accepts': str('application/json')
     }
 
     def test_get(self, hydrated_client_multiple_middleware):
