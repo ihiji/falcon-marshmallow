@@ -99,6 +99,78 @@ def hydrated_client():
     data_store.clear()
 
 
+@pytest.fixture()
+def hydrated_client_multiple_middleware():
+    """A Falcon API with an endpoint for testing Marshmallow, with all
+    included middlewares registered."""
+    data_store = DataStore()
+
+    class PhilosopherResource:
+
+        schema = Philosopher()
+
+        def on_get(self, req, resp, phil_id):
+            """Get a philosopher"""
+            req.context['result'] = data_store.get(phil_id)
+
+    class PhilosopherCollection:
+
+        schema = Philosopher()
+
+        def on_post(self, req, resp):
+            req.context['result'] = data_store.insert(req.context['json'])
+
+    app = API(middleware=[
+        m.Marshmallow(),
+        m.JSONEnforcer(),
+        m.EmptyRequestDropper()])
+
+    app.add_route('/philosophers', PhilosopherCollection())
+    app.add_route('/philosophers/{phil_id}', PhilosopherResource())
+
+    yield testing.TestClient(app)
+
+    data_store.clear()
+
+
+class TestAllIncludedMiddleware:
+    """Test all included middleware combined.
+
+    Specific functionality is tested elsewhere; this is to verify that one
+    middleware is not setting `fp` to the end of `req.stream` and all others
+    think that they have empty strings.
+
+    https://github.com/ihiji/falcon-marshmallow/pull/8
+    """
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Accepts': 'application/json'
+    }
+
+    def test_get(self, hydrated_client_multiple_middleware):
+        resp = hydrated_client_multiple_middleware.simulate_get(
+            '/philosophers/first',
+            headers=self.headers
+        )
+        assert resp.status_code == 200
+
+    def test_post(self, hydrated_client_multiple_middleware):
+        phil = {
+            'name': 'Albert Camus',
+            'birth': date(1913, 11, 7).isoformat(),
+            'death': date(1960, 1, 4).isoformat(),
+            'schools': ['existentialism', 'absurdism'],
+            'works': ['The Stranger', 'The Myth of Sisyphus']
+        }
+        resp = hydrated_client_multiple_middleware.simulate_post(
+            '/philosophers',
+            body=json.dumps(phil).encode(),
+            headers=self.headers
+        )  # type: testing.Result
+        assert resp.status_code == 200
+
+
 class TestMarshmallowMiddleware:
     """Test Marshmallow middleware"""
 
