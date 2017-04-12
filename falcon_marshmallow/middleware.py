@@ -27,6 +27,28 @@ log = logging.getLogger(__name__)
 
 
 JSON_CONTENT_REQUIRED_METHODS = ('POST', 'PUT', 'PATCH')
+CONTENT_KEY = 'content'
+
+
+def get_stashed_content(req):
+    """
+    A helper to have multiple middlewares acting on data in the request
+    stream.
+
+    For this to work, no middlewware should use `req.stream.read()` directly,
+    as that will either cause this to get `EOF` (`b''`) or the middleware will
+    get `EOF` if this runs first.
+
+    The issue is that without more elaborate measures (which we could do at
+    some point), the first middleware to use `req.stream.read()` will make
+    an following middleware get no data, as the stream is not seekable; it does
+    not support being rewound (no `seek(0)`).
+    """
+    # This is the key which will hold the already-read content.
+    if req.context.get(CONTENT_KEY) is None:
+        req.context[CONTENT_KEY] = req.stream.read()
+
+    return req.context[CONTENT_KEY]
 
 
 class JSONEnforcer:
@@ -97,8 +119,10 @@ class EmptyRequestDropper:
         if req.content_length in (None, 0):
             return
 
-        body = req.stream.read()
-        if not body:
+        content = get_stashed_content(req)
+
+        # If the content is _still_ Falsy (e.g., something empty like b'')
+        if not content:
             raise HTTPBadRequest(
                 description=(
                     'Empty response body. A valid JSON document is required.'
@@ -108,12 +132,12 @@ class EmptyRequestDropper:
 
 class Marshmallow:
     """Attempt to deserialize objects with any available schemas"""
-    
+
     def __init__(self, req_key='json', resp_key='result', force_json=True,
                  json_module=json):
         # type: (str, str, bool, type(json)) -> None
         """Instantiate the middleware object
-        
+
         :param req_key: (default ``'json'``) the key on the
             ``req.context`` object where the parsed request body
             will be stored
@@ -233,7 +257,7 @@ class Marshmallow:
                 )
 
             try:
-                body = req.stream.read().decode('utf-8')
+                body = get_stashed_content(req).decode('utf-8')
                 parsed = self._json.loads(body)
             except UnicodeDecodeError:
                 raise HTTPBadRequest('Body was not encoded as UTF-8')
@@ -251,7 +275,7 @@ class Marshmallow:
 
         elif self._force_json:
 
-            body = req.stream.read()
+            body = get_stashed_content(req)
             try:
                 req.context[self._req_key] = self._json.loads(
                     body.decode('utf-8')

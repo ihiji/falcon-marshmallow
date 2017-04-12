@@ -446,7 +446,7 @@ class TestEmptyRequestDropper:
     def test_raise_on_empty_body(self, read):
         # type: (str) -> None
         """Test that we raise if we get an empty body"""
-        req = mock.Mock(content_length=10)
+        req = mock.Mock(content_length=10, context={})
         req.stream.read.return_value = read
 
         if not read:
