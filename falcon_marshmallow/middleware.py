@@ -46,7 +46,7 @@ def get_stashed_content(req):
     """
     # This is the key which will hold the already-read content.
     if req.context.get(CONTENT_KEY) is None:
-        req.context[CONTENT_KEY] = req.stream.read()
+        req.context[CONTENT_KEY] = req.bounded_stream.read()
 
     return req.context[CONTENT_KEY]
 
@@ -257,7 +257,7 @@ class Marshmallow:
                 )
 
             try:
-                body = get_stashed_content(req).decode('utf-8')
+                body = get_stashed_content(req)
                 parsed = self._json.loads(body)
             except UnicodeDecodeError:
                 raise HTTPBadRequest('Body was not encoded as UTF-8')
@@ -277,9 +277,7 @@ class Marshmallow:
 
             body = get_stashed_content(req)
             try:
-                req.context[self._req_key] = self._json.loads(
-                    body.decode('utf-8')
-                )
+                req.context[self._req_key] = self._json.loads(body)
             except (ValueError, UnicodeDecodeError):
                 raise HTTPBadRequest(
                     description=(

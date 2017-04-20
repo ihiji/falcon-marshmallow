@@ -104,12 +104,11 @@ class TestMarshmallow:
             assert val == exp_value
 
     @pytest.mark.parametrize(
-        'stream, schema, schema_err, bad_sch, bad_uni, force_json, json_err, '
+        'stream, schema, schema_err, bad_sch, force_json, json_err, '
         'exp_ret', [
             (  # Good schema
                 '{"foo": "test"}',
                 True,
-                False,
                 False,
                 False,
                 False,
@@ -123,18 +122,16 @@ class TestMarshmallow:
                 False,
                 False,
                 False,
-                False,
                 {'bar': 'test'}
             ),
             (  # Good schema, bad unicode in body
-                '{"foo": "test"}',
+                '{"foo": "testé"}',
                 True,
                 False,
                 False,
-                True,
                 False,
                 False,
-                {'bar': 'test'}
+                {'bar': 'testé'}
             ),
             (  # Bad schema
                 '{"foo": "test"}',
@@ -143,12 +140,10 @@ class TestMarshmallow:
                 True,
                 False,
                 False,
-                False,
                 {'bar': 'test'}
             ),
             (  # No schema, no force json (no change to req.context)
                 '{"foo": "test"}',
-                False,
                 False,
                 False,
                 False,
@@ -161,7 +156,6 @@ class TestMarshmallow:
                 False,
                 False,
                 False,
-                False,
                 True,
                 False,
                 {'foo': 'test'}
@@ -171,33 +165,30 @@ class TestMarshmallow:
                 False,
                 False,
                 False,
-                False,
                 True,
                 True,
                 {'foo': 'test'}
             ),
             (  # No schema, force json, good json, bad unicode
-                '{"foo": "test"}',
+                '{"foo": "testé"}',
                 False,
                 False,
                 False,
                 True,
-                True,
                 False,
-                {'foo': 'test'}
+                {'foo': 'testé'}
             ),
         ]
     )
     def test_process_resource(self, stream, schema, schema_err, bad_sch,
-                              bad_uni, force_json, json_err, exp_ret):
+                              force_json, json_err, exp_ret):
         # type: (str, bool, bool, bool, bool, bool, bool, dict) -> None
         """Test processing a resource
 
-        :param stream: the return of req.stream.read()
+        :param stream: the return of req.bounded_stream.read()
         :param schema: whether a schema should be returned (TestSchema)
         :param schema_err: whether a schema error is expected
         :param bad_sch: pass an uninstantiated or non-schema object
-        :param bad_uni: whether bad unicode is expected
         :param force_json: whether to try json if no schema is found
         :param json_err: whether a JSON error is expected
         :param exp_ret: expected return if no errors are raised
@@ -214,19 +205,11 @@ class TestMarshmallow:
             mw._get_schema = lambda *x, **y: None
 
         req = mock.Mock(method='GET')
-        if not bad_uni:
-            req.stream.read.return_value = stream.encode()
-        else:
-            req.stream.read.return_value = stream.encode() + b'\xe7'
+        req.bounded_stream.read.return_value = stream
         req.context = {}
 
         if schema_err:
             with pytest.raises(errors.HTTPUnprocessableEntity):
-                # noinspection PyTypeChecker
-                mw.process_resource(req, 'foo', 'foo', 'foo')
-            return
-        if bad_uni:
-            with pytest.raises(errors.HTTPBadRequest):
                 # noinspection PyTypeChecker
                 mw.process_resource(req, 'foo', 'foo', 'foo')
             return
@@ -440,14 +423,14 @@ class TestEmptyRequestDropper:
         self.dropper.process_request(req, 'foo')
 
         # Assert we didn't go past the first return
-        req.stream.read.assert_not_called()
+        req.bounded_stream.read.assert_not_called()
 
     @pytest.mark.parametrize('read', ['foo', ''])
     def test_raise_on_empty_body(self, read):
         # type: (str) -> None
         """Test that we raise if we get an empty body"""
         req = mock.Mock(content_length=10, context={})
-        req.stream.read.return_value = read
+        req.bounded_stream.read.return_value = read
 
         if not read:
             with pytest.raises(errors.HTTPBadRequest):

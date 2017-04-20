@@ -165,7 +165,7 @@ class TestAllIncludedMiddleware:
         }
         resp = hydrated_client_multiple_middleware.simulate_post(
             '/philosophers',
-            body=json.dumps(phil).encode(),
+            body=json.dumps(phil),
             headers=self.headers
         )  # type: testing.Result
         assert resp.status_code == 200
@@ -190,7 +190,7 @@ class TestMarshmallowMiddleware:
         # type: (testing.TestClient) -> None
         """Test posting a new philosopher"""
         phil = {
-            'name': 'Albert Camus',
+            'name': 'Albért Camus',
             'birth': date(1913, 11, 7).isoformat(),
             'death': date(1960, 1, 4).isoformat(),
             'schools': ['existentialism', 'absurdism'],
@@ -198,7 +198,7 @@ class TestMarshmallowMiddleware:
         }
         resp = hydrated_client.simulate_post(
             '/philosophers',
-            body=json.dumps(phil).encode()
+            body=json.dumps(phil)
         )  # type: testing.Result
         assert resp.status_code == 200
         parsed = resp.json
@@ -210,7 +210,7 @@ class TestMarshmallowMiddleware:
         assert resp.status_code == 200
         got = resp.json
         assert got['id'] == parsed['id']
-        assert got['name'] == 'Albert Camus'
+        assert got['name'] == 'Albért Camus'
         assert got['birth'] == '1913-11-07'
 
     def test_post_unprocessable_entitty(self, hydrated_client):
@@ -225,7 +225,7 @@ class TestMarshmallowMiddleware:
         }
         resp = hydrated_client.simulate_post(
             '/philosophers',
-            body=json.dumps(phil).encode()
+            body=json.dumps(phil)
         )  # type: testing.Result
         assert resp.status == status_codes.HTTP_UNPROCESSABLE_ENTITY
         parsed = resp.json
