@@ -6,7 +6,9 @@
 language: python
 
 python: 3.6
-
-install: "pip install tox"
-
+install: pip install tox
 script: tox
+
+notifications:
+  slack:
+    secure: fJuy9MBR3AJyD/vxDq3hEAYBGKQTvghKvCXFmxDFoSFP32m3x74FzFWs3Xw41NDQogO4vOAAmJiXCWQ9UqVzbjpFTe2+TkOKVEoQeG8p//K4GlYRKs+DZwoIQwDC7aSn/m3h6+gHnY80V4VVdgT/Oq60kO1r30D+QfHVorflwd79PkuxL+6N+fmsD3mgl7r7Wdw/buiMehk9zMo3avMZMAc5pxKd7z/pP4AxCUwsunjDzOF7DMeJGI1ohx9cb/PVp7JLNMsPiXt5TmFZSl4v0Ai25HBHcTizamCoTtrSezo0mmZ/CUEgW+yz6kiDLjwF+keKgbf2XoXTW1omRWQmXy/RTXeGcD3gaeqTiVgeb/FxslwyYD8v8prtr0H7GonbdNr5AyigFkShzvGr5VfbS0Gh5/OvUmo5q4AQahk/lUerG2V0iFJCJGho5VErrltSXZ6Bz6zJHwPxLZo2ydMxJEFCIF8tklK2rqP74k4ncSi8FJvibQmrBatqq6GjEa7muQchVvGZFqIo2kjnzEUaxf93apQFsW83465jR9b8JvZB+8Oy8Ef/QS57dhfytODLthyF8zPBMGaaNDP66M+0Brun8EfkvTy85EItoN0Zw1lqUbVCQb69mBA6qKd7RE4GichvEheXnB0aILkFum59ava+Ow+9ENWolD6W3iknhS4=
