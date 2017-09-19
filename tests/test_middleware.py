@@ -17,7 +17,7 @@ from typing import Optional
 
 # Third party
 import pytest
-from falcon import errors
+from falcon import errors, Request, Response
 from marshmallow import fields, Schema
 
 # Local
@@ -41,12 +41,16 @@ class TestMarshmallow:
     @pytest.mark.parametrize('method, attr_name, has_sch', [
         ('GET', 'get_schema', True),
         ('get', 'get_schema', True),
+        ('get', 'get_response_schema', False),
+        ('get', 'get_request_schema', True),
         ('get', 'schema', False),
         ('get', 'put_schema', False),
         ('POST', 'post_schema', True),
         ('post', 'post_schema', True),
         ('POST', 'schema', False),
         ('POST', 'get_schema', False),
+        ('post', 'post_response_schema', False),
+        ('post', 'post_request_schema', True),
         ('PATCH', 'patch_schema', True),
         ('patch', 'patch_schema', True),
         ('PUT', 'put_schema', True),
@@ -54,9 +58,9 @@ class TestMarshmallow:
         ('DELETE', 'delete_schema', True),
         ('delete', 'delete_schema', True),
     ])
-    def test_get_method_schema(self, method, attr_name, has_sch):
+    def test_get_specific_schema(self, method, attr_name, has_sch):
         # type: (str, str, bool) -> None
-        """Test getting a method-specific schema from a resource"""
+        """Test getting a specific schema from a resource"""
 
         class TestResource:
             """Quick test object"""
@@ -65,7 +69,7 @@ class TestMarshmallow:
 
         tr = TestResource()
 
-        sch = mid.Marshmallow._get_method_schema(tr, method)
+        sch = mid.Marshmallow._get_specific_schema(tr, method, 'request')
 
         if has_sch:
             assert sch == 'foo'
@@ -80,13 +84,23 @@ class TestMarshmallow:
             (('get_schema', 'foo'), ('schema', 'bar'), ('post_schema', 'baz')),
             'foo'
         ),
+        (
+            'GET',
+            (
+                ('get_schema', 'foo'),
+                ('get_response_schema', 'bar'),
+                ('get_request_schema', 'boo'),
+                ('post_response_schema', 'baz')
+            ),
+            'bar'
+        ),
         ('GET', (('post_schema', 'foo'), ('schema', 'bar')), 'bar'),
         ('GET', (('schema', 'bar'), ), 'bar'),
         ('GET', (), None),
     ])
     def test_get_schema(self, method, attrs, exp_value):
         # type: (str, tuple, str) -> None
-        """Test getting a general or method-specific schema"""
+        """Test getting a general or specific schema"""
 
         class TestResource:
             """Quick test object"""
@@ -96,7 +110,7 @@ class TestMarshmallow:
 
         tr = TestResource()
 
-        val = mid.Marshmallow()._get_schema(tr, method)
+        val = mid.Marshmallow()._get_schema(tr, method, 'response')
 
         if exp_value is None:
             assert val is None

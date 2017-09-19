@@ -169,14 +169,20 @@ class Marshmallow:
         self._json = json_module
 
     @staticmethod
-    def _get_method_schema(resource, method):
-        # type: (object, str) -> Optional[Schema]
-        """Return a method-specific schema or None
+    def _get_specific_schema(resource, method, msg_type):
+        # type: (object, str, str) -> Optional[Schema]
+        """Return a specific schema or None
 
-        If the provided resource has defined a method-specific schema
-        that matches the passed method, e.g. 'get_schema' for a 'GET'
-        request or 'post_schema" for a 'POST' request, return that
-        schema.
+        If the provided resource has defined method-specific schemas
+        or method-request/response-specific schemas, return that
+        schema. If there are multiple schemas defined, the more
+        specific ones will take precedence.
+
+        Examples:
+            - 'get_schema' for a 'GET' request & response
+            - `post_schema' for a 'POST' request & response
+            - 'post_request_schema' for a 'POST' request
+            - 'post_response_schema' for a 'POST' response
 
         Return ``None`` if no matching schema exists
 
@@ -184,20 +190,39 @@ class Marshmallow:
             ``process_response`` or ``process_resource``
         :param method: the (case-insensitive) HTTP method used
             for the request, e.g. 'GET' or 'POST'
+        :param msg_type: a string 'request' or 'response'
+            representing whether this was called from
+            ``process_response`` or ``process_resource``
         """
-        log.debug('Marshmallow._get_method_schema(%s, %s)', resource, method)
+        log.debug(
+            'Marshmallow._get_specific_schema(%s, %s, %s)',
+            resource, method, msg_type
+        )
+
+        sch_name = '%s_%s_schema' % (method.lower(), msg_type)
+        specific_schema = getattr(resource, sch_name, None)
+        if specific_schema is not None:
+            return specific_schema
+
         sch_name = '%s_schema' % method.lower()
-        return getattr(resource, sch_name, None)
+        specific_schema = getattr(resource, sch_name, None)
+        return specific_schema
 
     @classmethod
-    def _get_schema(cls, resource, method):
-        # type: (object, str) -> Optional[Schema]
+    def _get_schema(cls, resource, method, msg_type):
+        # type: (object, str, str) -> Optional[Schema]
         """Return a method-specific schema, a generic schema, or None
 
-        If the provided resource has defined a method-specific schema
-        that matches the passed method, e.g. 'get_schema' for a 'GET'
-        request or 'post_schema" for a 'POST' request, return that
-        schema.
+        If the provided resource has defined method-specific schemas
+        or method-request/response-specific schemas, return that
+        schema. If there are multiple schemas defined, the more
+        specific ones will take precedence.
+
+        Examples:
+            - 'get_schema' for a 'GET' request & response
+            - `post_schema' for a 'POST' request & response
+            - 'post_request_schema' for a 'POST' request
+            - 'post_response_schema' for a 'POST' response
 
         Otherwise, if the provided resource has defined a generic
         schema under ``resource.schema``, return that schema.
@@ -208,11 +233,19 @@ class Marshmallow:
             ``process_response`` or ``process_resource``
         :param method: the (case-insensitive) HTTP method used
             for the request, e.g. 'GET' or 'POST'
+        :param msg_type: a string 'request' or 'response'
+            representing whether this was called from
+            ``process_response`` or ``process_resource``
         """
-        log.debug('Marshmallow._get_schema(%s, %s)', resource, method)
-        method_schema = cls._get_method_schema(resource, method)
-        if method_schema is not None:
-            return method_schema
+        log.debug(
+            'Marshmallow._get_schema(%s, %s, %s)',
+            resource, method, msg_type
+        )
+        specific_schema = cls._get_specific_schema(
+            resource, method, msg_type
+        )
+        if specific_schema is not None:
+            return specific_schema
         return getattr(resource, 'schema', None)
 
     def process_resource(self, req, resp, resource, params):
@@ -247,7 +280,7 @@ class Marshmallow:
         if req.content_length in (None, 0):
             return
 
-        sch = self._get_schema(resource, req.method)
+        sch = self._get_schema(resource, req.method, 'request')
 
         if sch is not None:
             if not isinstance(sch, Schema):
@@ -318,7 +351,7 @@ class Marshmallow:
         if self._resp_key not in req.context:
             return
 
-        sch = self._get_schema(resource, req.method)
+        sch = self._get_schema(resource, req.method, 'response')
 
         if sch is not None:
             if not isinstance(sch, Schema):
